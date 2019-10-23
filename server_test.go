@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	coapNet "github.com/go-ocf/go-coap/net"
+	coapNet "./net"
 	"github.com/pion/dtls"
 )
 
