@@ -468,7 +468,7 @@ func Dial(network, address string) (*ClientConn, error) {
 
 func DialYggdrasil(node coapNet.YggdrasilNode, address string) (*ClientConn, error) {
 	client := Client{Net: "yggdrasil"}
-  ctx := context.WithValue(context.Background(), "yggdraisl-node", node)
+  ctx := context.WithValue(context.Background(), "yggdrasil-node", node)
 	return client.DialWithContext(ctx, address)
 }
 
