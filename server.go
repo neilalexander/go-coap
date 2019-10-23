@@ -168,6 +168,8 @@ type Server struct {
 	newSessionTCPFunc func(connection *coapNet.Conn, srv *Server) (networkSession, error)
 	// If newSessionUDPFunc is set it is called when session DTLS want to be created
 	newSessionDTLSFunc func(connection *coapNet.Conn, srv *Server) (networkSession, error)
+	// If newSessionYggdrasilFunc is set it is called when session Yggdrasil want to be created
+	newSessionYggdrasilFunc func(connection *coapNet.Conn, srv *Server) (networkSession, error)
 	// If NotifyNewSession is set it is called when new TCP/UDP session was created.
 	NotifySessionNewFunc func(w *ClientConn)
 	// If NotifyNewSession is set it is called when TCP/UDP session was ended.
@@ -446,6 +448,19 @@ func (srv *Server) activateAndServe(listener Listener, conn *coapNet.Conn, connU
 		}
 	}
 
+	if srv.newSessionYggdrasilFunc == nil {
+		srv.newSessionYggdrasilFunc = func(connection *coapNet.Conn, srv *Server) (networkSession, error) {
+			session, err := newSessionYggdrasil(connection, srv)
+			if err != nil {
+				return nil, err
+			}
+			if session.blockWiseEnabled() {
+				return &blockWiseSession{networkSession: session}, nil
+			}
+			return session, nil
+		}
+	}
+
 	if srv.NotifySessionNewFunc == nil {
 		srv.NotifySessionNewFunc = func(w *ClientConn) {}
 	}
@@ -459,6 +474,11 @@ func (srv *Server) activateAndServe(listener Listener, conn *coapNet.Conn, connU
 		if _, ok := listener.(*coapNet.DTLSListener); ok {
 			return srv.serveDTLSListener(listener)
 		}
+
+		if _, ok := listener.(*coapNet.YggdrasilListener); ok {
+			return srv.serveYggdrasilListener(listener)
+		}
+
 		return srv.serveTCPListener(listener)
 	case conn != nil:
 		if strings.HasSuffix(srv.Net, "-dtls") {
@@ -629,6 +649,62 @@ func (srv *Server) serveTCPListener(l Listener) error {
 			go func() {
 				defer wg.Done()
 				srv.serveTCPConnection(ctx, coapNet.NewConn(rw, srv.heartBeat()))
+			}()
+		}
+	}
+}
+
+func (srv *Server) serveYggdrasilConnection(ctx *shutdownContext, conn *coapNet.Conn) error {
+	session, err := srv.newSessionYggdrasilFunc(conn, srv)
+	if err != nil {
+		return err
+	}
+	c := ClientConn{commander: &ClientCommander{session}}
+	srv.NotifySessionNewFunc(&c)
+
+	sessCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	for {
+		m := make([]byte, ^uint16(0))
+		n, err := conn.ReadWithContext(ctx, m)
+		if err != nil {
+			err := fmt.Errorf("cannot serve Yggdrasil connection %v", err)
+			srv.closeSessions(err)
+			return err
+		}
+		msg, err := ParseDgramMessage(m[:n])
+		if err != nil {
+			continue
+		}
+
+		// We will block poller wait loop when
+		// all pool workers are busy.
+		c := ClientConn{commander: &ClientCommander{session}}
+		srv.spawnWorker(&Request{Client: &c, Msg: msg, Ctx: sessCtx, Sequence: c.Sequence()})
+	}
+}
+
+// serveYggdrasilListener starts an Yggdrasil listener for the server.
+func (srv *Server) serveYggdrasilListener(l Listener) error {
+	if srv.NotifyStartedFunc != nil {
+		srv.NotifyStartedFunc()
+	}
+
+	var wg sync.WaitGroup
+	ctx := newShutdownWithContext(srv.doneChan)
+
+	for {
+		rw, err := l.AcceptWithContext(ctx)
+		if err != nil {
+			wg.Wait()
+			return fmt.Errorf("cannot serve yggdrasil: %v", err)
+		}
+		if rw != nil {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				srv.serveYggdrasilConnection(ctx, coapNet.NewConn(rw, srv.heartBeat()))
 			}()
 		}
 	}
