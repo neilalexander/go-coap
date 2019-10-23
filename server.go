@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	coapNet "./net"
+	coapNet "github.com/go-ocf/go-coap/net"
 	"github.com/pion/dtls"
 )
 

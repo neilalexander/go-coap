@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net"
 
-	coapNet "./net"
+	coapNet "github.com/go-ocf/go-coap/net"
 )
 
 type sessionDTLS struct {
