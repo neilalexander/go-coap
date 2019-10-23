@@ -112,6 +112,18 @@ func ListenAndServeDTLS(network string, addr string, config *dtls.Config, handle
 	return server.ListenAndServe()
 }
 
+// Yggdrasil support.
+func ListenAndServeYggdrasil(node coapNet.YggdrasilNode, handler Handler) error {
+  server := &Server{
+    Addr: node.Core.Address().String(),
+    Net: "yggdrasil",
+    YggdrasilNode: node,
+    Handler: handler,
+  }
+
+  return server.ListenAndServe()
+}
+
 // ActivateAndServe activates a server with a listener from systemd,
 // l and p should not both be non-nil.
 // If both l and p are not nil only p will be used.
@@ -127,6 +139,8 @@ type Server struct {
 	Addr string
 	// if "tcp" or "tcp-tls" (COAP over TLS) it will invoke a TCP listener, otherwise an UDP one
 	Net string
+	// YggdrasilNode
+	YggdrasilNode coapNet.YggdrasilNode
 	// TCP Listener to use, this is to aid in systemd's socket activation.
 	Listener Listener
 	// TLS connection configuration
@@ -306,6 +320,12 @@ func (srv *Server) ListenAndServe() error {
 	case "udp-dtls", "udp4-dtls", "udp6-dtls":
 		network := strings.TrimSuffix(srv.Net, "-dtls")
 		listener, err = coapNet.NewDTLSListener(network, addr, srv.DTLSConfig, srv.heartBeat())
+		if err != nil {
+			return fmt.Errorf("cannot listen and serve: %v", err)
+		}
+		defer listener.Close()
+	case "yggdrasil":
+		listener, err = coapNet.NewYggdrasilListener(srv.YggdrasilNode, srv.heartBeat())
 		if err != nil {
 			return fmt.Errorf("cannot listen and serve: %v", err)
 		}
