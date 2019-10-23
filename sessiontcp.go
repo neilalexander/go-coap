@@ -7,7 +7,7 @@ import (
 	"net"
 	"sync/atomic"
 
-	coapNet "github.com/go-ocf/go-coap/net"
+	coapNet "github.com/Fnux/go-coap/net"
 )
 
 type sessionTCP struct {

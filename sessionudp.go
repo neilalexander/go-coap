@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net"
 
-	coapNet "github.com/go-ocf/go-coap/net"
+	coapNet "github.com/Fnux/go-coap/net"
 )
 
 type connUDP interface {
