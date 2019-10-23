@@ -154,6 +154,20 @@ func (c *Client) DialWithContext(ctx context.Context, address string) (clientCon
 		conn = udpConn
 		BlockWiseTransfer = true
 		multicast = true
+	case "yggdrasil":
+		network = c.Net
+
+		n := ctx.Value("yggdrasil-node").(coapNet.YggdrasilNode)
+		yggdrasilDialer, err := n.Core.ConnDialer()
+		if err != nil {
+			return nil, err
+		}
+		conn, err = yggdrasilDialer.Dial("nodeid", address)
+		if err != nil {
+			return nil, err
+		}
+
+		BlockWiseTransfer = true
 	default:
 		return nil, ErrInvalidNetParameter
 	}
@@ -212,6 +226,9 @@ func (c *Client) DialWithContext(ctx context.Context, address string) (clientCon
 					return &blockWiseSession{networkSession: session}, nil
 				}
 				return session, nil
+			},
+			newSessionYggdrasilFunc: func(connection *coapNet.Conn, srv *Server) (networkSession, error) {
+				return clientConn.commander.networkSession, nil
 			},
 			Handler: c.Handler,
 		},
@@ -447,6 +464,12 @@ func (co *ClientConn) Sequence() uint64 {
 func Dial(network, address string) (*ClientConn, error) {
 	client := Client{Net: network}
 	return client.DialWithContext(context.Background(), address)
+}
+
+func DialYggdrasil(node coapNet.YggdrasilNode, address string) (*ClientConn, error) {
+	client := Client{Net: "yggdrasil"}
+  ctx := context.WithValue(context.Background(), "yggdraisl-node", node)
+	return client.DialWithContext(ctx, address)
 }
 
 // DialTimeout acts like Dial but takes a timeout.
