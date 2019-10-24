@@ -6,6 +6,6 @@ import (
 )
 
 type YggdrasilNode struct {
-  Core   yggdrasil.Core
+  Core   *yggdrasil.Core
   Config *config.NodeConfig
 }
