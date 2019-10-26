@@ -14,6 +14,7 @@ import (
 	"time"
 
 	coapNet "github.com/Fnux/go-coap/net"
+	"github.com/yggdrasil-network/yggdrasil-go/src/yggdrasil"
 	"github.com/pion/dtls"
 )
 
@@ -382,6 +383,11 @@ func (srv *Server) ActivateAndServe() error {
 				srv.Net = "udp"
 			}
 			return srv.activateAndServe(nil, nil, coapNet.NewConnUDP(c, srv.heartBeat(), 2))
+		case *yggdrasil.Conn:
+			if srv.Net == "" {
+				srv.Net = "yggdrasil"
+			}
+			return srv.activateAndServe(nil, coapNet.NewConn(c, srv.heartBeat()), nil)
 		}
 		return ErrInvalidServerConnParameter
 	}
