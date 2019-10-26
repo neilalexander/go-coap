@@ -12,6 +12,7 @@ import (
 	"time"
 
 	coapNet "github.com/Fnux/go-coap/net"
+	"github.com/yggdrasil-network/yggdrasil-go/src/yggdrasil"
 	"github.com/pion/dtls"
 )
 
@@ -264,6 +265,17 @@ func (c *Client) DialWithContext(ctx context.Context, address string) (clientCon
 		// WriteContextMsgUDP returns error when addr is filled in SessionUDPData for connected socket
 		coapNet.SetUDPSocketOptions(clientConn.srv.Conn.(*net.UDPConn))
 		session, err := newSessionUDP(coapNet.NewConnUDP(clientConn.srv.Conn.(*net.UDPConn), clientConn.srv.heartBeat(), c.MulticastHopLimit), clientConn.srv, sessionUPDData)
+		if err != nil {
+			clientConn.srv.Conn.Close()
+			return nil, err
+		}
+		if session.blockWiseEnabled() {
+			clientConn.commander.networkSession = &blockWiseSession{networkSession: session}
+		} else {
+			clientConn.commander.networkSession = session
+		}
+	case *yggdrasil.Conn:
+		session, err := newSessionYggdrasil(coapNet.NewConn(clientConn.srv.Conn, clientConn.srv.heartBeat()), clientConn.srv)
 		if err != nil {
 			clientConn.srv.Conn.Close()
 			return nil, err
