@@ -16,7 +16,7 @@ type sessionYggdrasil struct {
 
 // newSessionYggdrasil create new session for Yggdrasil connection
 func newSessionYggdrasil(connection *coapNet.Conn, srv *Server) (networkSession, error) {
-	BlockWiseTransfer := true
+	BlockWiseTransfer := false
 	BlockWiseTransferSzx := BlockWiseSzx1024
 	if srv.BlockWiseTransfer != nil {
 		BlockWiseTransfer = *srv.BlockWiseTransfer
