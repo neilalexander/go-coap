@@ -51,14 +51,12 @@ func (l *YggdrasilListener) AcceptWithContext(ctx context.Context) (net.Conn, er
 
 // Accept waits for a generic Conn.
 func (l *YggdrasilListener) Accept() (net.Conn, error) {
-	// TODO: handle deadline.
 	return l.AcceptWithContext(context.Background())
 }
 
 // SetDeadline sets deadline for accept operation.
 func (l *YggdrasilListener) SetDeadline(t time.Time) error {
-	l.deadline.Store(t)
-	return nil
+	return l.listener.SetDeadline(t)
 }
 
 // Close closes the connection.
