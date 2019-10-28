@@ -358,6 +358,13 @@ func (srv *Server) initServeDTLS(conn *coapNet.Conn) error {
 	return srv.serveDTLSConnection(newShutdownWithContext(srv.doneChan), conn)
 }
 
+func (srv *Server) initServeYggdrasil(conn *coapNet.Conn) error {
+	if srv.NotifyStartedFunc != nil {
+		srv.NotifyStartedFunc()
+	}
+	return srv.serveYggdrasilConnection(newShutdownWithContext(srv.doneChan), conn)
+}
+
 // ActivateAndServe starts a coapserver with the PacketConn or Listener
 // configured in *Server. Its main use is to start a server from systemd.
 func (srv *Server) ActivateAndServe() error {
@@ -487,10 +494,13 @@ func (srv *Server) activateAndServe(listener Listener, conn *coapNet.Conn, connU
 
 		return srv.serveTCPListener(listener)
 	case conn != nil:
-		if strings.HasSuffix(srv.Net, "-dtls") {
+		if srv.Net == "yggdrasil" {
+			return srv.initServeYggdrasil(conn)
+		} else if strings.HasSuffix(srv.Net, "-dtls") {
 			return srv.initServeDTLS(conn)
+		} else {
+			return srv.initServeTCP(conn)
 		}
-		return srv.initServeTCP(conn)
 	case connUDP != nil:
 		return srv.initServeUDP(connUDP)
 	}

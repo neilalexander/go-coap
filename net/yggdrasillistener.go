@@ -38,7 +38,6 @@ func (l *YggdrasilListener) AcceptWithContext(ctx context.Context) (net.Conn, er
 		if err != nil {
 			return nil, fmt.Errorf("cannot accept connections: %v", err)
 		}
-    // FIXME: Handle deadline!
 		rw, err := l.listener.Accept()
 		if err != nil {
 			if isTemporary(err) {
@@ -52,6 +51,7 @@ func (l *YggdrasilListener) AcceptWithContext(ctx context.Context) (net.Conn, er
 
 // Accept waits for a generic Conn.
 func (l *YggdrasilListener) Accept() (net.Conn, error) {
+	// TODO: handle deadline.
 	return l.AcceptWithContext(context.Background())
 }
 
