@@ -1,0 +1,13 @@
+image: fedora/31
+packages:
+  - golang-bin
+sources:
+  - https://git.sr.ht/~fnux/yggdrasil-go-coap
+environment:
+  GOPATH: /tmp/go
+  GOBIN: /tmp/go/bin
+tasks:
+  - build: |
+      cd yggdrasil-go-coap
+      go get -v
+      go build
