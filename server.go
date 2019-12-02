@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	coapNet "github.com/Fnux/go-coap/net"
+	coapNet "git.sr.ht/~fnux/yggdrasil-go-coap/net"
 	"github.com/yggdrasil-network/yggdrasil-go/src/yggdrasil"
 	"github.com/pion/dtls"
 )

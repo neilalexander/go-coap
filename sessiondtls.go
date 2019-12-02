@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net"
 
-	coapNet "github.com/Fnux/go-coap/net"
+	coapNet "git.sr.ht/~fnux/yggdrasil-go-coap/net"
 )
 
 type sessionDTLS struct {
