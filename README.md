@@ -22,7 +22,7 @@ with this workflow.
 In order to support Yggdrasil, the following structure and methods are
 provided:
 
-```
+```go
 type YggdrasilNode struct {
 	Core   *yggdrasil.Core
 	Config *config.NodeConfig
@@ -41,7 +41,7 @@ A complete example can be found on
 This fork also allow to use custom [CoAP
 options](https://tools.ietf.org/html/rfc7252#section-3.1):
 
-```
+```go
 func SetOptionDef(oid OptionID, format string, minLen int, maxLen int)
 
 // Example
