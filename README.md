@@ -8,8 +8,14 @@ This project is a fork of
 
 This project lives at
 [git.sr.ht/~fnux/yggdrasil-go-coap](https://git.sr.ht/~fnux/yggdrasil-go-coap),
-any other source (i.e. github.com) is not to be considered maintained by its
-original author.
+a bug tracker being available at
+[todo.sr.ht/~fnux/yggdrasil-go-coap](https://todo.sr.ht/~fnux/yggdrasil-go-coap).
+
+## Contributions
+
+You can send [me](https://fnux.ch/) [patches](https://git-send-email.io/) by
+email. Feel free to directly contact [me](https://fnux.ch/) if you have issues
+with this workflow.
 
 ## Yggdrasil support
 
