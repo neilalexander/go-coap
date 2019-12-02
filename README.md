@@ -14,7 +14,7 @@ a bug tracker being available at
 ## Contributions
 
 You can send [me](https://fnux.ch/) [patches](https://git-send-email.io/) by
-email. Feel free to directly contact [me](https://fnux.ch/) if you have issues
+email. Feel free to contact [me](https://fnux.ch/) directly if you have issues
 with this workflow.
 
 ## Yggdrasil support
