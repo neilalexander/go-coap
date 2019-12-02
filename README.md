@@ -1,12 +1,14 @@
 # Yggdrasil-Go-CoAP
 
+[![builds.sr.ht status](https://builds.sr.ht/~fnux/yggdrasil-go-coap.svg)](https://builds.sr.ht/~fnux/yggdrasil-go-coap?)
+
 This project is a fork of
 [github.com/go-ocf/go-coap](https://github.com/go-ocf/go-coap), adding
 [Yggdrasil](https://yggdrasil-network.github.io/) support to the library.
 
 This project lives at
 [git.sr.ht/~fnux/yggdrasil-go-coap](https://git.sr.ht/~fnux/yggdrasil-go-coap),
-any other source (i.e. on github.com) is not to be considered maintained by its
+any other source (i.e. github.com) is not to be considered maintained by its
 original author.
 
 ## Yggdrasil support
