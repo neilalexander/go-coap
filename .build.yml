@@ -7,7 +7,9 @@ environment:
   GOPATH: /tmp/go
   GOBIN: /tmp/go/bin
 tasks:
-  - build: |
+  - fetch: |
       cd yggdrasil-go-coap
       go get -v
+  - build: |
+      cd yggdrasil-go-coap
       go build
