@@ -27,7 +27,23 @@ func DialYggdrasil(node coapNet.YggdrasilNode, address string) (*ClientConn, err
 func ListenAndServeYggdrasil(node coapNet.YggdrasilNode, handler Handler) error
 ```
 
-### Examples
-
 A complete example can be found on
 [git.sr.ht/~fnux/yggdrasil-coap-nodes](https://git.sr.ht/~fnux/yggdrasil-coap-nodes).
+
+## Custom CoAP Options
+
+This fork also allow to use custom [CoAP
+options](https://tools.ietf.org/html/rfc7252#section-3.1):
+
+```
+func SetOptionDef(oid OptionID, format string, minLen int, maxLen int)
+
+// Example
+var MyCustomCoAPOptionID coap.OptionID = 65000
+coap.SetOptionDef(MyCustomCoAPOptionID, "string", 0, 255)
+
+params := coap.MessageParams{ ... }
+msg := c.NewMessage(params)
+
+msg.SetOption(MyCustomCoAPOption, "spouik")
+```
