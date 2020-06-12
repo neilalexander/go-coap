@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/go-ocf/go-coap/codes"
-	coapNet "github.com/go-ocf/go-coap/net"
+	"git.sr.ht/~fnux/yggdrasil-go-coap/codes"
+	coapNet "git.sr.ht/~fnux/yggdrasil-go-coap/net"
 	dtls "github.com/pion/dtls/v2"
 )
 

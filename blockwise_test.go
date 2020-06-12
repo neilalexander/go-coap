@@ -6,7 +6,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/go-ocf/go-coap/codes"
+	"git.sr.ht/~fnux/yggdrasil-go-coap/codes"
 )
 
 func testMarshal(t *testing.T, szx BlockWiseSzx, blockNumber uint, moreBlocksFollowing bool, expectedBlock uint32) {

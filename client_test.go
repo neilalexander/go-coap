@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-ocf/go-coap/codes"
+	"git.sr.ht/~fnux/yggdrasil-go-coap/codes"
 )
 
 func periodicTransmitter(w ResponseWriter, r *Request) {

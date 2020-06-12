@@ -3,7 +3,7 @@ package coap
 import (
 	"context"
 
-	"github.com/go-ocf/go-coap/codes"
+	"git.sr.ht/~fnux/yggdrasil-go-coap/codes"
 )
 
 // A ResponseWriter interface is used by an CAOP handler to construct an COAP response.

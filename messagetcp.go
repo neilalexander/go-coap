@@ -8,7 +8,7 @@ import (
 	"io"
 	"sort"
 
-	"github.com/go-ocf/go-coap/codes"
+	"git.sr.ht/~fnux/yggdrasil-go-coap/codes"
 )
 
 const (
