@@ -286,6 +286,24 @@ type option struct {
 	Value interface{}
 }
 
+func SetOptionDef(oid OptionID, format string, minLen int, maxLen int) {
+	var encodedFormat valueFormat
+	switch format {
+	case "empty":
+		encodedFormat = valueEmpty
+	case "opaque":
+		encodedFormat = valueOpaque
+	case "uint":
+		encodedFormat = valueUint
+	case "string":
+		encodedFormat = valueString
+	default:
+		encodedFormat = valueUnknown
+	}
+
+	coapOptionDefs[oid] = optionDef{valueFormat: encodedFormat, minLen: minLen, maxLen: maxLen}
+}
+
 func encodeInt(buf io.Writer, v uint32) error {
 	switch {
 	case v == 0:

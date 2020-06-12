@@ -16,6 +16,7 @@ import (
 	"github.com/go-ocf/go-coap/codes"
 	coapNet "github.com/go-ocf/go-coap/net"
 	dtls "github.com/pion/dtls/v2"
+	"github.com/yggdrasil-network/yggdrasil-go/src/yggdrasil"
 )
 
 // Interval for stop worker if no load
@@ -125,6 +126,18 @@ func ListenAndServeDTLS(network string, addr string, config *dtls.Config, handle
 	return server.ListenAndServe()
 }
 
+// Yggdrasil support.
+func ListenAndServeYggdrasil(node coapNet.YggdrasilNode, handler Handler) error {
+	server := &Server{
+		Addr:          node.Core.Address().String(),
+		Net:           "yggdrasil",
+		YggdrasilNode: node,
+		Handler:       handler,
+	}
+
+	return server.ListenAndServe()
+}
+
 // ActivateAndServe activates a server with a listener from systemd,
 // l and p should not both be non-nil.
 // If both l and p are not nil only p will be used.
@@ -140,6 +153,8 @@ type Server struct {
 	Addr string
 	// if "tcp" or "tcp-tls" (COAP over TLS) it will invoke a TCP listener, otherwise an UDP one
 	Net string
+	// YggdrasilNode
+	YggdrasilNode coapNet.YggdrasilNode
 	// TCP Listener to use, this is to aid in systemd's socket activation.
 	Listener Listener
 	// TLS connection configuration
@@ -167,6 +182,8 @@ type Server struct {
 	newSessionTCPFunc func(connection *coapNet.Conn, srv *Server) (networkSession, error)
 	// If newSessionUDPFunc is set it is called when session DTLS want to be created
 	newSessionDTLSFunc func(connection *coapNet.Conn, srv *Server) (networkSession, error)
+	// If newSessionYggdrasilFunc is set it is called when session Yggdrasil want to be created
+	newSessionYggdrasilFunc func(connection *coapNet.Conn, srv *Server) (networkSession, error)
 	// If NotifyNewSession is set it is called when new TCP/UDP session was created.
 	NotifySessionNewFunc func(w *ClientConn)
 	// If NotifyNewSession is set it is called when TCP/UDP session was ended.
@@ -324,6 +341,12 @@ func (srv *Server) ListenAndServe() error {
 			return fmt.Errorf("cannot listen and serve: %v", err)
 		}
 		defer listener.Close()
+	case "yggdrasil":
+		listener, err = coapNet.NewYggdrasilListener(srv.YggdrasilNode, srv.heartBeat())
+		if err != nil {
+			return fmt.Errorf("cannot listen and serve: %v", err)
+		}
+		defer listener.Close()
 	default:
 		return ErrInvalidNetParameter
 	}
@@ -374,6 +397,13 @@ func (srv *Server) initServeDTLS(conn *coapNet.Conn) error {
 	return srv.serveDTLSConnection(newShutdownWithContext(doneChan), conn)
 }
 
+func (srv *Server) initServeYggdrasil(conn *coapNet.Conn) error {
+	if srv.NotifyStartedFunc != nil {
+		srv.NotifyStartedFunc()
+	}
+	return srv.serveYggdrasilConnection(newShutdownWithContext(srv.doneChan), conn)
+}
+
 // ActivateAndServe starts a coapserver with the PacketConn or Listener
 // configured in *Server. Its main use is to start a server from systemd.
 func (srv *Server) ActivateAndServe() error {
@@ -399,6 +429,11 @@ func (srv *Server) ActivateAndServe() error {
 				srv.Net = "udp"
 			}
 			return srv.activateAndServe(nil, nil, coapNet.NewConnUDP(c, srv.heartBeat(), 2, srv.Errors))
+		case *yggdrasil.Conn:
+			if srv.Net == "" {
+				srv.Net = "yggdrasil"
+			}
+			return srv.activateAndServe(nil, coapNet.NewConn(c, srv.heartBeat()), nil)
 		}
 		return ErrInvalidServerConnParameter
 	}
@@ -474,6 +509,19 @@ func (srv *Server) activateAndServe(listener Listener, conn *coapNet.Conn, connU
 		}
 	}
 
+	if srv.newSessionYggdrasilFunc == nil {
+		srv.newSessionYggdrasilFunc = func(connection *coapNet.Conn, srv *Server) (networkSession, error) {
+			session, err := newSessionYggdrasil(connection, srv)
+			if err != nil {
+				return nil, err
+			}
+			if session.blockWiseEnabled() {
+				return &blockWiseSession{networkSession: session}, nil
+			}
+			return session, nil
+		}
+	}
+
 	if srv.NotifySessionNewFunc == nil {
 		srv.NotifySessionNewFunc = func(w *ClientConn) {}
 	}
@@ -487,12 +535,20 @@ func (srv *Server) activateAndServe(listener Listener, conn *coapNet.Conn, connU
 		if _, ok := listener.(*coapNet.DTLSListener); ok {
 			return srv.serveDTLSListener(listener)
 		}
+
+		if _, ok := listener.(*coapNet.YggdrasilListener); ok {
+			return srv.serveYggdrasilListener(listener)
+		}
+
 		return srv.serveTCPListener(listener)
 	case conn != nil:
-		if strings.HasSuffix(srv.Net, "-dtls") {
+		if srv.Net == "yggdrasil" {
+			return srv.initServeYggdrasil(conn)
+		} else if strings.HasSuffix(srv.Net, "-dtls") {
 			return srv.initServeDTLS(conn)
+		} else {
+			return srv.initServeTCP(conn)
 		}
-		return srv.initServeTCP(conn)
 	case connUDP != nil:
 		return srv.initServeUDP(connUDP)
 	}
@@ -687,6 +743,62 @@ func (srv *Server) serveTCPListener(l Listener) error {
 			go func() {
 				defer wg.Done()
 				srv.serveTCPConnection(ctx, coapNet.NewConn(rw, srv.heartBeat()))
+			}()
+		}
+	}
+}
+
+func (srv *Server) serveYggdrasilConnection(ctx *shutdownContext, conn *coapNet.Conn) error {
+	session, err := srv.newSessionYggdrasilFunc(conn, srv)
+	if err != nil {
+		return err
+	}
+	c := ClientConn{commander: &ClientCommander{session}}
+	srv.NotifySessionNewFunc(&c)
+
+	sessCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	for {
+		m := make([]byte, ^uint16(0))
+		n, err := conn.ReadWithContext(ctx, m)
+		if err != nil {
+			err := fmt.Errorf("cannot serve Yggdrasil connection %v", err)
+			srv.closeSessions(err)
+			return err
+		}
+		msg, err := ParseDgramMessage(m[:n])
+		if err != nil {
+			continue
+		}
+
+		// We will block poller wait loop when
+		// all pool workers are busy.
+		c := ClientConn{commander: &ClientCommander{session}}
+		srv.spawnWorker(&Request{Client: &c, Msg: msg, Ctx: sessCtx, Sequence: c.Sequence()})
+	}
+}
+
+// serveYggdrasilListener starts an Yggdrasil listener for the server.
+func (srv *Server) serveYggdrasilListener(l Listener) error {
+	if srv.NotifyStartedFunc != nil {
+		srv.NotifyStartedFunc()
+	}
+
+	var wg sync.WaitGroup
+	ctx := newShutdownWithContext(srv.doneChan)
+
+	for {
+		rw, err := l.AcceptWithContext(ctx)
+		if err != nil {
+			wg.Wait()
+			return fmt.Errorf("cannot serve yggdrasil: %v", err)
+		}
+		if rw != nil {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				srv.serveYggdrasilConnection(ctx, coapNet.NewConn(rw, srv.heartBeat()))
 			}()
 		}
 	}
