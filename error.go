@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-ocf/go-coap/net"
+	"git.sr.ht/~fnux/yggdrasil-go-coap/net"
 )
 
 // Error errors type of coap
